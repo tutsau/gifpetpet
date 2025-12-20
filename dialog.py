@@ -194,6 +194,7 @@ class CuteDialog(wx.Dialog):
     
     def hide_with_animation(self):
         """显示对话框消失动画（嗖一下收起来的效果）"""
+        print("执行对话框消失动画")
         # 初始化消失动画变量
         self.animation_step = 0
         self.animation_max_steps = 12  # 消失动画总步数，较快的动画
@@ -203,17 +204,21 @@ class CuteDialog(wx.Dialog):
         
         # 创建动画定时器
         if self.animation_timer:
+            print("停止并销毁已有动画定时器")
             self.animation_timer.Stop()
             self.animation_timer = None
         
         self.animation_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_hide_animation_timer, self.animation_timer)
         self.animation_timer.Start(16)  # 约60fps
-    
+        print("消失动画定时器已启动")
+
     def on_hide_animation_timer(self, event):
         """消失动画定时器事件"""
+        print(f"消失动画步骤: {self.animation_step}/{self.animation_max_steps}")
         if self.animation_step >= self.animation_max_steps:
             # 动画结束，关闭对话框
+            print("消失动画结束，关闭对话框")
             self.animation_timer.Stop()
             self.animation_timer = None
             self.Hide()

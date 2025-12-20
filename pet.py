@@ -473,7 +473,7 @@ class FinalGIFDesktopPet(wx.Frame):
         if self.dialog and self.dialog.IsShown():
             self.dialog.hide_with_animation()
             # 不立即设置为None，让对话框动画结束后自己销毁
-    
+
     def update_dialog_position(self):
         """更新对话框位置以跟随宠物"""
         if not self.dialog or not self.dialog.IsShown():
@@ -498,9 +498,3 @@ class FinalGIFDesktopPet(wx.Frame):
             dialog_pos_y = pet_pos.y + pet_size.y + 10
         
         self.dialog.SetPosition((dialog_pos_x, dialog_pos_y))
-    
-    def on_dialog_auto_close(self, event):
-        """对话框自动关闭事件处理"""
-        if self.dialog and self.dialog.IsShown():
-            self.dialog.Destroy()
-            self.dialog = None
