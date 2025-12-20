@@ -191,3 +191,59 @@ class CuteDialog(wx.Dialog):
         
         # 更新动画步骤
         self.animation_step += 1
+    
+    def hide_with_animation(self):
+        """显示对话框消失动画（嗖一下收起来的效果）"""
+        # 初始化消失动画变量
+        self.animation_step = 0
+        self.animation_max_steps = 12  # 消失动画总步数，较快的动画
+        self.start_position = self.GetPosition()
+        self.start_size = self.GetSize()
+        self.end_size = (0, 0)  # 最终尺寸
+        
+        # 创建动画定时器
+        if self.animation_timer:
+            self.animation_timer.Stop()
+            self.animation_timer = None
+        
+        self.animation_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_hide_animation_timer, self.animation_timer)
+        self.animation_timer.Start(16)  # 约60fps
+    
+    def on_hide_animation_timer(self, event):
+        """消失动画定时器事件"""
+        if self.animation_step >= self.animation_max_steps:
+            # 动画结束，关闭对话框
+            self.animation_timer.Stop()
+            self.animation_timer = None
+            self.Hide()
+            self.Destroy()  # 动画结束后彻底销毁对话框
+            return
+        
+        # 计算动画进度（0-1）
+        progress = self.animation_step / self.animation_max_steps
+        
+        # 使用缓动函数实现快速消失效果
+        # 使用二次函数使动画加速消失
+        t = progress * progress
+        
+        # 计算新的尺寸（缩放）
+        new_width = int(self.start_size.width * (1 - t))
+        new_height = int(self.start_size.height * (1 - t))
+        
+        # 计算新的位置（保持中心）
+        center_x = self.start_position.x + self.start_size.width // 2
+        center_y = self.start_position.y + self.start_size.height // 2
+        new_x = center_x - new_width // 2
+        new_y = center_y - new_height // 2
+        
+        # 计算新的透明度（淡出）
+        alpha = int(240 * (1 - t))  # 从240到0的透明度变化
+        
+        # 更新对话框属性
+        self.SetSize((new_width, new_height))
+        self.SetPosition(wx.Point(new_x, new_y))
+        self.SetTransparent(alpha)
+        
+        # 更新动画步骤
+        self.animation_step += 1

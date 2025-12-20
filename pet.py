@@ -412,8 +412,8 @@ class FinalGIFDesktopPet(wx.Frame):
         """显示可爱的对话框"""
         # 如果已有对话框打开，先关闭
         if self.dialog and self.dialog.IsShown():
-            self.dialog.Destroy()
-            self.dialog = None
+            self.dialog.hide_with_animation()
+            # 不立即设置为None，让对话框动画结束后自己销毁
         
         # 随机选择一条可爱的文本
         cute_texts = [
@@ -467,6 +467,12 @@ class FinalGIFDesktopPet(wx.Frame):
         self.auto_close_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_dialog_auto_close, self.auto_close_timer)
         self.auto_close_timer.Start(3000, oneShot=True)
+
+    def on_dialog_auto_close(self, event):
+        """对话框自动关闭事件处理"""
+        if self.dialog and self.dialog.IsShown():
+            self.dialog.hide_with_animation()
+            # 不立即设置为None，让对话框动画结束后自己销毁
     
     def update_dialog_position(self):
         """更新对话框位置以跟随宠物"""
