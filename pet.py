@@ -69,15 +69,16 @@ class FinalGIFDesktopPet(wx.Frame):
         self.Show()
     
     def bounce(self):
-        """实现弹跳效果"""
+        """实现史莱姆按压效果"""
         if self.bounce_timer is None:
             self.bounce_timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.on_bounce_timer, self.bounce_timer)
-            # 记录原始位置
+            # 记录原始位置和尺寸
             self.original_position = self.GetPosition()
+            self.original_size = self.GetSize()
             # 重置弹跳参数
             self.bounce_step = 0
-            self.bounce_max_steps = 10  # 弹跳总步数
+            self.bounce_max_steps = 16  # 弹跳总步数，增加以获得更平滑的效果
             self.bounce_timer.Start(16)  # 约60fps
             return
         
@@ -88,19 +89,51 @@ class FinalGIFDesktopPet(wx.Frame):
         progress = self.bounce_step / self.bounce_max_steps
         
         # 使用正弦函数计算弹跳高度，创建缓动效果
-        bounce_height = math.sin(progress * math.pi) * self.bounce_amplitude
-        
-        # 更新窗口位置
-        new_pos = wx.Point(self.original_position.x, self.original_position.y - int(bounce_height))
-        self.SetPosition(new_pos)
+        # 前半部分(0-0.5)是按压阶段，后半部分(0.5-1)是回弹阶段
+        if progress <= 0.5:
+            # 按压阶段：压缩宠物
+            compression_progress = progress * 2  # 0-1
+            compression_factor = math.sin(compression_progress * math.pi / 2)
+            
+            # 计算新尺寸：垂直压缩，水平略微扩展
+            new_height = int(self.original_size.height * (1 - 0.2 * compression_factor))
+            new_width = int(self.original_size.width * (1 + 0.1 * compression_factor))
+            
+            # 更新窗口位置和尺寸
+            new_pos = wx.Point(
+                self.original_position.x - (new_width - self.original_size.width) // 2,
+                self.original_position.y + (self.original_size.height - new_height)
+            )
+            self.SetPosition(new_pos)
+            self.SetSize((new_width, new_height))
+            self.image_ctrl.SetSize((new_width, new_height))
+        else:
+            # 回弹阶段：恢复原始尺寸
+            rebound_progress = (progress - 0.5) * 2  # 0-1
+            rebound_factor = math.sin(rebound_progress * math.pi / 2)
+            
+            # 计算新尺寸：逐渐恢复原始尺寸
+            new_height = int(self.original_size.height * (1 - 0.2 * (1 - rebound_factor)))
+            new_width = int(self.original_size.width * (1 + 0.1 * (1 - rebound_factor)))
+            
+            # 更新窗口位置和尺寸
+            new_pos = wx.Point(
+                self.original_position.x - (new_width - self.original_size.width) // 2,
+                self.original_position.y + (self.original_size.height - new_height)
+            )
+            self.SetPosition(new_pos)
+            self.SetSize((new_width, new_height))
+            self.image_ctrl.SetSize((new_width, new_height))
         
         # 更新步数
         self.bounce_step += 1
         
         # 检查是否完成弹跳
         if self.bounce_step >= self.bounce_max_steps:
-            # 恢复到原始位置
+            # 恢复到原始位置和尺寸
             self.SetPosition(self.original_position)
+            self.SetSize(self.original_size)
+            self.image_ctrl.SetSize(self.original_size)
             # 清理定时器
             self.bounce_timer.Stop()
             self.bounce_timer = None
