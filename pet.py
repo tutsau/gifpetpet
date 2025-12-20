@@ -200,11 +200,15 @@ class FinalGIFDesktopPet(wx.Frame):
                 if frame.mode != 'RGBA':
                     frame = frame.convert('RGBA')
                 
+                # 将图像缩小为原来的一半
+                new_size = (frame.width // 2, frame.height // 2)
+                frame = frame.resize(new_size, Image.Resampling.LANCZOS)
+                
                 # 打印帧信息（用于调试）
-                print(f"帧 {i+1}/{num_frames}: 模式={frame.mode}, 尺寸={frame.size}, 延迟={delay}ms")
+                print(f"帧 {i+1}/{num_frames}: 模式={frame.mode}, 尺寸={new_size}, 延迟={delay}ms")
                 
                 # 创建 wx.Image
-                wx_image = wx.Image(*frame.size)
+                wx_image = wx.Image(*new_size)
                 
                 # 设置 RGB 数据
                 rgb_data = frame.convert('RGB').tobytes()
@@ -392,14 +396,14 @@ class FinalGIFDesktopPet(wx.Frame):
         wx.GetApp().ExitMainLoop()
     
     def set_initial_position(self):
-        """设置窗口初始位置（屏幕右上角）"""
+        """设置窗口初始位置（屏幕右下角）"""
         # 获取屏幕尺寸
         screen_size = wx.GetDisplaySize()
         window_size = self.GetSize()
         
-        # 计算初始位置（右上角）
+        # 计算初始位置（右下角）
         pos_x = screen_size.GetWidth() + self.INIT_X - window_size.GetWidth()
-        pos_y = self.INIT_Y
+        pos_y = screen_size.GetHeight() - self.INIT_Y - window_size.GetHeight()
         
         self.SetPosition((pos_x, pos_y))
         print(f"初始位置: ({pos_x}, {pos_y})")
