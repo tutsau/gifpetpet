@@ -48,6 +48,14 @@ class FinalGIFDesktopPet(wx.Frame):
         self.dialog = None  # 保存对话框引用
         self.auto_close_timer = None  # 自动关闭定时器
         
+        # 弹跳效果相关变量
+        self.bounce_timer = None  # 弹跳定时器
+        self.bounce_offset = 0  # 当前弹跳偏移量
+        self.bounce_direction = -1  # 弹跳方向 (-1: 向上, 1: 向下)
+        self.bounce_amplitude = 20  # 弹跳幅度
+        self.bounce_speed = 2  # 弹跳速度
+        self.original_position = wx.Point(0, 0)  # 原始位置
+        
         # 创建图像控件
         self.image_ctrl = wx.StaticBitmap(self, wx.ID_ANY)
         
@@ -59,6 +67,67 @@ class FinalGIFDesktopPet(wx.Frame):
         
         # 显示窗口
         self.Show()
+    
+    def bounce(self):
+        """实现弹跳效果"""
+        if self.bounce_timer is None:
+            self.bounce_timer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self.on_bounce_timer, self.bounce_timer)
+            # 记录原始位置
+            self.original_position = self.GetPosition()
+            # 重置弹跳参数
+            self.bounce_step = 0
+            self.bounce_max_steps = 10  # 弹跳总步数
+            self.bounce_timer.Start(16)  # 约60fps
+            return
+        
+        # 使用正弦函数创建更自然的弹跳效果
+        import math
+        
+        # 计算当前弹跳进度 (0-1)
+        progress = self.bounce_step / self.bounce_max_steps
+        
+        # 使用正弦函数计算弹跳高度，创建缓动效果
+        bounce_height = math.sin(progress * math.pi) * self.bounce_amplitude
+        
+        # 更新窗口位置
+        new_pos = wx.Point(self.original_position.x, self.original_position.y - int(bounce_height))
+        self.SetPosition(new_pos)
+        
+        # 更新步数
+        self.bounce_step += 1
+        
+        # 检查是否完成弹跳
+        if self.bounce_step >= self.bounce_max_steps:
+            # 恢复到原始位置
+            self.SetPosition(self.original_position)
+            # 清理定时器
+            self.bounce_timer.Stop()
+            self.bounce_timer = None
+            self.bounce_step = 0
+    
+    def on_bounce_timer(self, event):
+        """弹跳定时器事件"""
+        self.bounce()
+    
+    def on_mouse_left_up(self, event):
+        """鼠标左键释放事件（停止拖拽）"""
+        if self.is_dragging:
+            self.is_dragging = False
+            if self.HasCapture():
+                self.ReleaseMouse()
+                
+            # 检测是否为点击事件（移动距离小于5像素）
+            click_end_pos = event.GetPosition()
+            distance = ((click_end_pos[0] - self.click_start_pos[0])**2 + 
+                      (click_end_pos[1] - self.click_start_pos[1])**2)**0.5
+            
+            if distance < 5:
+                # 执行弹跳效果
+                self.bounce()
+                # 显示可爱对话框
+                self.show_cute_dialog()
+        event.Skip()
     
     def load_gif(self):
         """使用 Pillow 加载 GIF 动画"""
@@ -250,6 +319,8 @@ class FinalGIFDesktopPet(wx.Frame):
                       (click_end_pos[1] - self.click_start_pos[1])**2)**0.5
             
             if distance < 5:
+                # 执行弹跳效果
+                self.bounce()
                 # 显示可爱对话框
                 self.show_cute_dialog()
         event.Skip()
