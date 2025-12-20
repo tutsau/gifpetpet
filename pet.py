@@ -429,11 +429,31 @@ class FinalGIFDesktopPet(wx.Frame):
         # 创建自定义对话框
         self.dialog = CuteDialog(self, text=text)
         
-        # 显示对话框（这会确保对话框的实际尺寸被正确计算）
-        self.dialog.Show()
-        
         # 计算对话框位置（宠物上方居中）
-        self.update_dialog_position()
+        pet_pos = self.GetPosition()
+        pet_size = self.GetSize()
+        
+        # 对话框最终位置（宠物上方居中）
+        dialog_size = self.dialog.GetSize()
+        end_x = pet_pos.x + (pet_size.x - dialog_size.x) // 2
+        end_y = pet_pos.y - dialog_size.y - 10
+        
+        # 确保对话框在屏幕内
+        screen_size = wx.GetDisplaySize()
+        if end_x < 0:
+            end_x = 0
+        elif end_x + dialog_size.x > screen_size.x:
+            end_x = screen_size.x - dialog_size.x
+        
+        end_pos = wx.Point(end_x, end_y)
+        
+        # 对话框起始位置（宠物头部附近）
+        start_x = end_x
+        start_y = pet_pos.y + pet_size.y // 4  # 宠物头部位置
+        start_pos = wx.Point(start_x, start_y)
+        
+        # 显示对话框并执行动画
+        self.dialog.show_with_animation(start_pos, end_pos)
         
         # 3秒后自动关闭对话框
         if self.auto_close_timer:
@@ -443,12 +463,6 @@ class FinalGIFDesktopPet(wx.Frame):
         self.auto_close_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_dialog_auto_close, self.auto_close_timer)
         self.auto_close_timer.Start(3000, oneShot=True)
-    
-    def on_dialog_auto_close(self, event):
-        """对话框自动关闭事件处理"""
-        if self.dialog and self.dialog.IsShown():
-            self.dialog.Destroy()
-            self.dialog = None
     
     def update_dialog_position(self):
         """更新对话框位置以跟随宠物"""
@@ -474,3 +488,9 @@ class FinalGIFDesktopPet(wx.Frame):
             dialog_pos_y = pet_pos.y + pet_size.y + 10
         
         self.dialog.SetPosition((dialog_pos_x, dialog_pos_y))
+    
+    def on_dialog_auto_close(self, event):
+        """对话框自动关闭事件处理"""
+        if self.dialog and self.dialog.IsShown():
+            self.dialog.Destroy()
+            self.dialog = None

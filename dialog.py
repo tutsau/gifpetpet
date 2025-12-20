@@ -6,6 +6,7 @@
 """
 
 import wx
+import math
 
 
 class CuteDialog(wx.Dialog):
@@ -64,6 +65,14 @@ class CuteDialog(wx.Dialog):
         # 自动调整尺寸
         self.Fit()
         
+        # 动画相关变量
+        self.animation_timer = None
+        self.animation_step = 0
+        self.animation_max_steps = 24  # 动画总步数
+        self.start_position = wx.Point(0, 0)  # 动画起始位置
+        self.end_position = wx.Point(0, 0)    # 动画结束位置
+        self.bounce_amplitude = 15  # 回弹幅度
+    
     def on_paint(self, event):
         """绘制可爱的对话框背景"""
         dc = wx.AutoBufferedPaintDC(self)
@@ -116,3 +125,69 @@ class CuteDialog(wx.Dialog):
             
             gc.SetBrush(wx.Brush(wx.Colour(*self.background_color)))
             gc.FillPath(tail_path)
+    
+    def show_with_animation(self, start_pos, end_pos):
+        """显示对话框并执行上升和回弹动画
+        
+        Args:
+            start_pos: 动画起始位置 (wx.Point)
+            end_pos: 动画结束位置 (wx.Point)
+        """
+        # 保存起始和结束位置
+        self.start_position = start_pos
+        self.end_position = end_pos
+        
+        # 从起始位置开始显示对话框
+        self.SetPosition(self.start_position)
+        self.Show()
+        
+        # 初始化动画变量
+        self.animation_step = 0
+        
+        # 创建动画定时器
+        if self.animation_timer:
+            self.animation_timer.Stop()
+            self.animation_timer = None
+        
+        self.animation_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_animation_timer, self.animation_timer)
+        self.animation_timer.Start(16)  # 约60fps
+    
+    def on_animation_timer(self, event):
+        """动画定时器事件"""
+        if self.animation_step >= self.animation_max_steps:
+            # 动画结束，停止定时器
+            self.animation_timer.Stop()
+            self.animation_timer = None
+            return
+        
+        # 计算动画进度（0-1）
+        progress = self.animation_step / self.animation_max_steps
+        
+        # 使用正弦函数实现平滑的上升和回弹效果
+        # 第一阶段：上升（0-0.5）
+        if progress <= 0.5:
+            # 使用二次函数加速上升
+            t = progress * 2  # 转换为0-1
+            # 应用缓动函数使动画更自然
+            t = t * t * (3 - 2 * t)  # 缓动函数：三次贝塞尔
+            y_offset = (1 - t) * self.start_position.y + t * (self.end_position.y - self.bounce_amplitude)
+        else:
+            # 第二阶段：回弹（0.5-1）
+            t = (progress - 0.5) * 2  # 转换为0-1
+            # 使用正弦函数实现回弹效果
+            bounce_factor = math.sin(t * math.pi)
+            y_offset = self.end_position.y + (self.bounce_amplitude * bounce_factor)
+        
+        # 保持水平位置不变
+        new_x = self.end_position.x
+        
+        # 更新对话框位置
+        self.SetPosition(wx.Point(new_x, int(y_offset)))
+        
+        # 更新透明度（可选：从半透明到完全透明）
+        alpha = int(200 + 40 * progress)  # 从200到240的透明度变化
+        self.SetTransparent(alpha)
+        
+        # 更新动画步骤
+        self.animation_step += 1
