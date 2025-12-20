@@ -5,7 +5,7 @@
 功能特性：
 1. 支持自定义 GIF 动画
 2. 鼠标拖拽移动
-3. 鼠标悬停暂停动画
+3. 鼠标悬停暂停动画并显示第一帧
 4. 鼠标离开恢复动画
 5. 窗口置顶显示
 6. 支持透明背景
@@ -15,7 +15,7 @@
 1. 将你的 GIF 文件重命名为 pet.gif 并放在同一目录下
 2. 运行程序：python3 final_petpet.py
 3. 点击并拖拽宠物可以移动位置
-4. 鼠标悬停在宠物上会暂停动画
+4. 鼠标悬停在宠物上会暂停动画并显示第一帧
 5. 鼠标离开后会恢复动画
 
 注意：在某些环境中可能需要安装依赖：
@@ -168,12 +168,23 @@ class FinalGIFDesktopPet(wx.Frame):
         self.animation_timer.Start(self.frame_delays[self.current_frame])
         print(f"动画已启动，初始延迟: {self.frame_delays[self.current_frame]}ms")
     
-    def pause_animation(self):
-        """暂停 GIF 动画"""
+    def pause_animation(self, frame_index=None):
+        """暂停 GIF 动画
+        
+        Args:
+            frame_index: 可选参数，指定暂停时显示的帧索引
+        """
         if self.animation_timer and self.animation_timer.IsRunning():
             self.animation_timer.Stop()
             self.is_paused = True
-            print("动画已暂停")
+            
+            # 如果指定了帧索引，跳转到该帧
+            if frame_index is not None and 0 <= frame_index < len(self.gif_frames):
+                self.current_frame = frame_index
+                self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+                print(f"动画已暂停在第 {frame_index+1} 帧")
+            else:
+                print("动画已暂停")
     
     def resume_animation(self):
         """恢复 GIF 动画"""
@@ -255,8 +266,8 @@ class FinalGIFDesktopPet(wx.Frame):
     
     def on_mouse_enter(self, event):
         """鼠标进入窗口事件"""
-        # 鼠标悬停时暂停动画
-        self.pause_animation()
+        # 鼠标悬停时暂停动画并跳转到第一帧
+        self.pause_animation(0)
         event.Skip()
     
     def on_mouse_leave(self, event):
