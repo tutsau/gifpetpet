@@ -11,7 +11,8 @@ class WorkIncentiveConfig:
         "work_start_time": "09:00",
         "work_end_time": "18:00",
         "custom_texts": [],
-        "dialog_duration": 1000
+        "dialog_duration": 1000,
+        "income_template": "你今天已经赚了 {earned_money} 元"
     }
     
     # 配置文件路径
@@ -96,6 +97,16 @@ class WorkIncentiveConfig:
     def dialog_duration(self, value):
         """设置提示消失时间（毫秒）"""
         self.config["dialog_duration"] = value
+    
+    @property
+    def income_template(self):
+        """获取收益提示模板"""
+        return self.config.get("income_template", "你今天已经赚了 {earned_money} 元")
+    
+    @income_template.setter
+    def income_template(self, value):
+        """设置收益提示模板"""
+        self.config["income_template"] = value
     
     def calculate_earned_money(self):
         """计算当前已赚取的工资"""

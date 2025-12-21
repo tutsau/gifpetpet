@@ -15,6 +15,7 @@ class WorkIncentiveManager:
         self.pet = pet
         self.config = WorkIncentiveConfig()
         self.auto_close_timer = None
+        self.income_timer = None
         
     def show_config_dialog(self):
         """显示配置对话框"""
@@ -53,8 +54,8 @@ class WorkIncentiveManager:
             import random
             text = random.choice(self.config.custom_texts).format(money=earned_money)
         else:
-            # 默认提示语
-            text = f"你今天已经赚了 {earned_money} 元"
+            # 使用用户自定义的收益提示模板
+            text = self.config.income_template.format(earned_money=earned_money)
         
         # 创建提示对话框
         dlg = wx.Dialog(self.pet, title="上班激励", size=(300, 150))
@@ -95,3 +96,12 @@ class WorkIncentiveManager:
             self.auto_close_timer.Stop()
             self.auto_close_timer.Destroy()
             self.auto_close_timer = None
+        
+        if self.income_timer:
+            self.income_timer.Stop()
+            self.income_timer.Destroy()
+            self.income_timer = None
+    
+    def on_income_timer(self, event):
+        """收益提示定时器事件处理"""
+        self.show_income_hint()

@@ -11,7 +11,7 @@ class WorkIncentiveDialog(wx.Dialog):
             parent: 父窗口
             config: 上班激励配置对象
         """
-        super().__init__(parent, title="上班激励设置", size=(300, 250))
+        super().__init__(parent, title="上班激励设置", size=(400, 450), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         
         # 保存配置引用
         self.config = config
@@ -75,10 +75,19 @@ class WorkIncentiveDialog(wx.Dialog):
         button_sizer.Add(ok_button, 0, wx.ALL, 5)
         button_sizer.Add(cancel_button, 0, wx.ALL, 5)
         
+        # 收益提示模板
+        template_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        template_label = wx.StaticText(self, label="收益提示模板：")
+        self.template_ctrl = wx.TextCtrl(self, value=self.config.income_template, size=(350, -1))
+        
+        template_sizer.Add(template_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        template_sizer.Add(self.template_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
         # 添加到主容器
         main_sizer.Add(salary_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(start_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(end_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        main_sizer.Add(template_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(custom_texts_label, 0, wx.ALL, 5)
         main_sizer.Add(self.custom_texts_ctrl, 1, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(duration_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -124,6 +133,9 @@ class WorkIncentiveDialog(wx.Dialog):
             
             # 保存消失时间（转换为毫秒）
             self.config.dialog_duration = int(duration_text) * 1000
+            
+            # 保存收益提示模板
+            self.config.income_template = self.template_ctrl.GetValue()
             
             event.Skip()
         except ValueError:
