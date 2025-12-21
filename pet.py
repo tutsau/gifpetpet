@@ -11,6 +11,7 @@ import sys
 import random
 import datetime
 from PIL import Image
+import config
 from dialog import CuteDialog
 from work_incentive import WorkIncentiveManager
 
@@ -41,7 +42,7 @@ class FinalGIFDesktopPet(wx.Frame):
         # 使用管理器显示配置对话框
         self.work_incentive_manager.show_config_dialog()
     
-    def __init__(self, gif_path='oiiai_cat.gif'):
+    def __init__(self, gif_path=config.Config.get_gif_path()):
         """初始化桌面宠物
         
         Args:
