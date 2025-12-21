@@ -446,8 +446,12 @@ class FinalGIFDesktopPet(wx.Frame):
         if self.work_incentive_manager.config.salary > 0:
             # 计算已赚金额
             earned_money = self.work_incentive_manager.config.calculate_earned_money()
-            # 使用用户自定义的收益提示模板
-            text = self.work_incentive_manager.config.income_template.format(earned_money=earned_money)
+            # 从收益提示模板中随机选择
+            templates = self.work_incentive_manager.config.income_templates
+            if templates:
+                text = random.choice(templates).format(money=round(earned_money, 2))
+            else:
+                text = f"你今天已经赚了 {round(earned_money, 2)} 元"
         else:
             # 优先使用用户自定义的提示语
             all_texts = []

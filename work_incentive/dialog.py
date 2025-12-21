@@ -65,7 +65,17 @@ class WorkIncentiveDialog(wx.Dialog):
         duration_sizer.Add(duration_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         duration_sizer.Add(self.duration_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         duration_sizer.Add(duration_unit, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        # 提醒间隔时间
+        interval_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        interval_label = wx.StaticText(self, label="提醒间隔时间：")
+        self.interval_ctrl = wx.TextCtrl(self, value=str(self.config.remind_interval))
+        interval_unit = wx.StaticText(self, label="秒")
         
+        interval_sizer.Add(interval_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        interval_sizer.Add(self.interval_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        interval_sizer.Add(interval_unit, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
         # 按钮区域
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         ok_button = wx.Button(self, wx.ID_OK, "确定")
@@ -74,15 +84,27 @@ class WorkIncentiveDialog(wx.Dialog):
         button_sizer.AddStretchSpacer()
         button_sizer.Add(ok_button, 0, wx.ALL, 5)
         button_sizer.Add(cancel_button, 0, wx.ALL, 5)
+
+        # 绑定事件
+        self.Bind(wx.EVT_BUTTON, self.on_ok, ok_button)
+        self.Bind(wx.EVT_TEXT, self.on_salary_text, self.salary_ctrl)
+        self.Bind(wx.EVT_TEXT, self.on_time_text, self.start_time_ctrl)
+        self.Bind(wx.EVT_TEXT, self.on_time_text, self.end_time_ctrl)
+        self.Bind(wx.EVT_TEXT, self.on_duration_text, self.duration_ctrl)
+        self.Bind(wx.EVT_TEXT, self.on_interval_text, self.interval_ctrl)
         
         # 收益提示模板
-        template_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        template_label = wx.StaticText(self, label="收益提示模板：")
-        self.template_ctrl = wx.TextCtrl(self, value=self.config.income_template, size=(350, -1))
+        template_sizer = wx.BoxSizer(wx.VERTICAL)
+        # 收益提示模板
+        template_label = wx.StaticText(self, label="收益提示模板（每行一条，支持{money}占位符）：")
+
+        self.template_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER, size=(350, 100))
+        # 将模板列表转换为多行文本
+        self.template_ctrl.SetValue("\n".join(self.config.income_templates))
         
-        template_sizer.Add(template_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        template_sizer.Add(self.template_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        
+        template_sizer.Add(template_label, 0, wx.ALL | wx.ALIGN_LEFT, 5)
+        template_sizer.Add(self.template_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+
         # 添加到主容器
         main_sizer.Add(salary_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(start_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -91,19 +113,19 @@ class WorkIncentiveDialog(wx.Dialog):
         main_sizer.Add(custom_texts_label, 0, wx.ALL, 5)
         main_sizer.Add(self.custom_texts_ctrl, 1, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(duration_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        main_sizer.Add(interval_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        
         # 设置主容器
         self.SetSizer(main_sizer)
         self.Layout()
-        
-        # 绑定事件
-        self.Bind(wx.EVT_BUTTON, self.on_ok, ok_button)
-        self.Bind(wx.EVT_TEXT, self.on_salary_text, self.salary_ctrl)
-        self.Bind(wx.EVT_TEXT, self.on_time_text, self.start_time_ctrl)
-        self.Bind(wx.EVT_TEXT, self.on_time_text, self.end_time_ctrl)
-        self.Bind(wx.EVT_TEXT, self.on_duration_text, self.duration_ctrl)
-    
+
+    def on_interval_text(self, event):
+        """提醒间隔时间输入文本变化事件"""
+        text = self.interval_ctrl.GetValue()
+        # 只允许输入数字
+        if text and not text.isdigit():
+            self.interval_ctrl.SetValue(text[:-1])
+
     def on_ok(self, event):
         """确定按钮点击事件"""
         # 验证并保存输入
@@ -125,6 +147,12 @@ class WorkIncentiveDialog(wx.Dialog):
                 wx.MessageBox("提示消失时间必须是大于0的数字", "错误", wx.OK | wx.ICON_ERROR)
                 return
             
+            # 验证提醒间隔
+            interval_text = self.interval_ctrl.GetValue()
+            if not interval_text.isdigit() or int(interval_text) <= 0:
+                wx.MessageBox("提醒间隔时间必须是大于0的数字", "错误", wx.OK | wx.ICON_ERROR)
+                return
+
             self.config.work_start_time = start_time
             self.config.work_end_time = end_time
             
@@ -134,8 +162,14 @@ class WorkIncentiveDialog(wx.Dialog):
             # 保存消失时间（转换为毫秒）
             self.config.dialog_duration = int(duration_text) * 1000
             
-            # 保存收益提示模板
-            self.config.income_template = self.template_ctrl.GetValue()
+            # 保存提醒间隔
+            self.config.remind_interval = int(interval_text)
+            
+            # 保存收益提示模板列表（去除空行）
+            self.config.income_templates = [template.strip() for template in self.template_ctrl.GetValue().split("\n") if template.strip()]
+            # 如果没有模板，添加默认模板
+            if not self.config.income_templates:
+                self.config.income_templates = ["你今天已经赚了 {money} 元"]
             
             event.Skip()
         except ValueError:

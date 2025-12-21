@@ -44,19 +44,23 @@ class WorkIncentiveManager:
         """显示收益提示"""
         if self.config.salary <= 0:
             return
-        
+    
         # 计算已赚金额
         earned_money = self.config.calculate_earned_money()
-        
+    
         # 构建提示文本
+        import random
         if self.config.custom_texts:
             # 如果有自定义提示语，随机选择一个
-            import random
-            text = random.choice(self.config.custom_texts).format(money=earned_money)
+            text = random.choice(self.config.custom_texts).format(money=round(earned_money, 2))
         else:
-            # 使用用户自定义的收益提示模板
-            text = self.config.income_template.format(earned_money=earned_money)
-        
+            # 从多个模板中随机选择一个
+            templates = self.config.income_templates
+            if templates:
+                text = random.choice(templates).format(money=round(earned_money, 2))
+            else:
+                text = f"你今天已经赚了 {round(earned_money, 2)} 元"
+    
         # 创建提示对话框
         dlg = wx.Dialog(self.pet, title="上班激励", size=(300, 150))
         main_sizer = wx.BoxSizer(wx.VERTICAL)

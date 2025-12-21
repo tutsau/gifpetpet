@@ -7,21 +7,43 @@ class WorkIncentiveConfig:
     
     # 默认配置
     DEFAULT_CONFIG = {
-        "salary": 0,
-        "work_start_time": "09:00",
-        "work_end_time": "18:00",
-        "custom_texts": [],
-        "dialog_duration": 1000,
-        "income_template": "你今天已经赚了 {earned_money} 元"
+        "salary": 3000,  # 月薪，默认3000元
+        "work_start_time": "09:00",  # 工作开始时间
+        "work_end_time": "18:00",  # 工作结束时间
+        "custom_texts": [],  # 自定义提示语列表
+        "dialog_duration": 5000,  # 对话框显示时间（毫秒）
+        "income_templates": ["你今天已经赚了 {money} 元"],  # 收益提示模板列表
+        "remind_interval": 60,  # 提醒间隔（秒）
     }
     
+    @property
+    def remind_interval(self):
+        """获取收益提示提醒间隔（秒）"""
+        return self.config.get("remind_interval", 60)
+    
+    @remind_interval.setter
+    def remind_interval(self, value):
+        """设置收益提示提醒间隔（秒）"""
+        self.config["remind_interval"] = value
+    
     # 配置文件路径
-    CONFIG_FILE_PATH = "work_incentive_config.json"
+    CONFIG_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "work_incentive_config.json")
     
     def __init__(self):
-        """初始化配置管理类"""
-        self.config = self.DEFAULT_CONFIG.copy()
+        """初始化配置"""
         self.load()
+        # 确保income_templates是列表格式（向后兼容）
+        if isinstance(self.config.get("income_templates"), str):
+            self.config["income_templates"] = [self.config["income_templates"]]
+        # 过滤空模板
+        if "income_templates" in self.config:
+            self.config["income_templates"] = [template for template in self.config["income_templates"] if template.strip()]
+        # 如果没有模板，添加默认模板
+        if not self.config.get("income_templates"):
+            self.config["income_templates"] = ["你今天已经赚了 {money} 元"]
+        # 将旧的{earned_money}占位符转换为{money}
+        if "income_templates" in self.config:
+            self.config["income_templates"] = [template.replace("{earned_money}", "{money}") for template in self.config["income_templates"]]
     
     def load(self):
         """从JSON文件加载配置"""
@@ -99,14 +121,45 @@ class WorkIncentiveConfig:
         self.config["dialog_duration"] = value
     
     @property
+    def income_templates(self):
+        """获取收益提示模板列表"""
+        # 向后兼容：如果是旧版的单个模板字符串，转换为列表
+        if isinstance(self.config.get("income_template"), str):
+            return [self.config.get("income_template")]
+        # 向后兼容：如果是旧版的单个模板键名，转换为新键名
+        if "income_template" in self.config:
+            templates = [self.config.get("income_template")]
+            del self.config["income_template"]
+            self.config["income_templates"] = templates
+            return templates
+        # 返回新版的模板列表
+        return self.config.get("income_templates", ["你今天已经赚了 {money} 元"])
+    
+    @income_templates.setter
+    def income_templates(self, value):
+        """设置收益提示模板列表"""
+        # 确保是列表类型
+        if not isinstance(value, list):
+            value = [value]
+        # 过滤空模板
+        value = [template.strip() for template in value if template.strip()]
+        self.config["income_templates"] = value
+    
+    @property
     def income_template(self):
-        """获取收益提示模板"""
-        return self.config.get("income_template", "你今天已经赚了 {earned_money} 元")
+        """获取收益提示模板（向后兼容，返回第一个模板）"""
+        templates = self.income_templates
+        return templates[0] if templates else "你今天已经赚了 {money} 元"
     
     @income_template.setter
     def income_template(self, value):
-        """设置收益提示模板"""
-        self.config["income_template"] = value
+        """设置收益提示模板（向后兼容，设置为第一个模板）"""
+        templates = self.income_templates
+        if templates:
+            templates[0] = value
+        else:
+            templates = [value]
+        self.config["income_templates"] = templates
     
     def calculate_earned_money(self):
         """计算当前已赚取的工资"""
