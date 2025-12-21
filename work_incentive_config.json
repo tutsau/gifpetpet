@@ -1,0 +1,9 @@
+{
+  "salary": 18000,
+  "work_start_time": "00:00",
+  "work_end_time": "08:00",
+  "custom_texts": [
+    "元！"
+  ],
+  "dialog_duration": 1000
+}

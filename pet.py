@@ -9,12 +9,37 @@ import wx
 import os
 import sys
 import random
+import datetime
 from PIL import Image
 from dialog import CuteDialog
+from work_incentive import WorkIncentiveManager
 
 
 class FinalGIFDesktopPet(wx.Frame):
     """最终版 GIF 桌面宠物主类"""
+    
+    def on_mouse_right_down(self, event):
+        """鼠标右键点击事件（显示上下文菜单）"""
+        # 创建上下文菜单
+        menu = wx.Menu()
+        
+        # 上班激励选项
+        work_incentive_item = menu.Append(wx.ID_ANY, "上班激励")
+        self.Bind(wx.EVT_MENU, self.on_work_incentive, work_incentive_item)
+        
+        # 退出选项
+        exit_item = menu.Append(wx.ID_EXIT, "退出")
+        self.Bind(wx.EVT_MENU, self.on_close, exit_item)
+        
+        # 显示菜单
+        self.PopupMenu(menu)
+        menu.Destroy()
+        event.Skip()
+    
+    def on_work_incentive(self, event):
+        """上班激励选项点击事件"""
+        # 使用管理器显示配置对话框
+        self.work_incentive_manager.show_config_dialog()
     
     def __init__(self, gif_path='oiiai_cat.gif'):
         """初始化桌面宠物
@@ -56,6 +81,12 @@ class FinalGIFDesktopPet(wx.Frame):
         self.bounce_speed = 2  # 弹跳速度
         self.original_position = wx.Point(0, 0)  # 原始位置
         
+        # 上班激励功能相关变量
+        self.work_incentive_manager = WorkIncentiveManager(self)  # 使用新的管理器类
+        
+        # 收益提示定时器
+        self.income_timer = None  # 每分钟弹出收益提示的定时器
+        
         # 创建图像控件
         self.image_ctrl = wx.StaticBitmap(self, wx.ID_ANY)
         
@@ -64,6 +95,12 @@ class FinalGIFDesktopPet(wx.Frame):
         self.setup_transparent_window()
         self.bind_events()
         self.set_initial_position()
+        # 配置已经在WorkIncentiveConfig初始化时加载
+        
+        # 启动收益提示定时器（每分钟弹出一次）
+        self.income_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_income_timer, self.income_timer)
+        self.income_timer.Start(60000)  # 60秒间隔
         
         # 显示窗口
         self.Show()
@@ -142,25 +179,6 @@ class FinalGIFDesktopPet(wx.Frame):
     def on_bounce_timer(self, event):
         """弹跳定时器事件"""
         self.bounce()
-    
-    def on_mouse_left_up(self, event):
-        """鼠标左键释放事件（停止拖拽）"""
-        if self.is_dragging:
-            self.is_dragging = False
-            if self.HasCapture():
-                self.ReleaseMouse()
-                
-            # 检测是否为点击事件（移动距离小于5像素）
-            click_end_pos = event.GetPosition()
-            distance = ((click_end_pos[0] - self.click_start_pos[0])**2 + 
-                      (click_end_pos[1] - self.click_start_pos[1])**2)**0.5
-            
-            if distance < 5:
-                # 执行弹跳效果
-                self.bounce()
-                # 显示可爱对话框
-                self.show_cute_dialog()
-        event.Skip()
     
     def load_gif(self):
         """使用 Pillow 加载 GIF 动画"""
@@ -330,6 +348,7 @@ class FinalGIFDesktopPet(wx.Frame):
         self.Bind(wx.EVT_MOTION, self.on_mouse_motion)
         self.Bind(wx.EVT_ENTER_WINDOW, self.on_mouse_enter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.on_mouse_leave)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.on_mouse_right_down)  # 添加右键点击事件
         
         # 窗口事件
         self.Bind(wx.EVT_CLOSE, self.on_close)
@@ -388,10 +407,18 @@ class FinalGIFDesktopPet(wx.Frame):
     
     def on_close(self, event):
         """窗口关闭事件"""
+        self.Hide()
         # 清理资源
         if self.animation_timer:
             self.animation_timer.Stop()
-            self.animation_timer = None
+        if self.income_timer:
+            self.income_timer.Stop()
+        if self.auto_close_timer:
+            self.auto_close_timer.Stop()
+            self.auto_close_timer.Destroy()
+        if self.bounce_timer:
+            self.bounce_timer.Stop()
+        event.Skip()
         self.Destroy()
         wx.GetApp().ExitMainLoop()
     
@@ -415,20 +442,37 @@ class FinalGIFDesktopPet(wx.Frame):
             self.dialog.hide_with_animation()
             # 不立即设置为None，让对话框动画结束后自己销毁
         
-        # 随机选择一条可爱的文本
-        cute_texts = [
-            "你好呀！",
-            "主人，有什么事吗？",
-            "今天天气真好！",
-            "我是不是很可爱？",
-            "需要我的帮助吗？",
-            "主人，陪我玩一会儿吧～",
-            "我会一直陪着你的！",
-            "喵～喵～",
-            "很高兴见到你！",
-            "今天也要开心哦！"
-        ]
-        text = random.choice(cute_texts)
+        # 生成对话框文本
+        if self.work_incentive_manager.config.salary > 0:
+            # 计算已赚金额
+            earned_money = self.work_incentive_manager.config.calculate_earned_money()
+            text = f"你今天已经赚了 {earned_money} 元"
+        else:
+            # 优先使用用户自定义的提示语
+            all_texts = []
+            if self.work_incentive_manager.config.custom_texts:
+                all_texts.extend(self.work_incentive_manager.config.custom_texts)
+            
+            # 添加默认提示语
+            default_texts = [
+                "你好呀！",
+                "主人，有什么事吗？",
+                "今天天气真好！",
+                "我是不是很可爱？",
+                "需要我的帮助吗？",
+                "主人，陪我玩一会儿吧～",
+                "我会一直陪着你的！",
+                "喵～喵～",
+                "很高兴见到你！",
+                "今天也要开心哦！"
+            ]
+            all_texts.extend(default_texts)
+            
+            # 如果没有任何文本（理论上不会发生），使用默认文本
+            if not all_texts:
+                all_texts = default_texts
+            
+            text = random.choice(all_texts)
         
         # 创建自定义对话框
         self.dialog = CuteDialog(self, text=text)
@@ -459,21 +503,21 @@ class FinalGIFDesktopPet(wx.Frame):
         # 显示对话框并执行动画
         self.dialog.show_with_animation(start_pos, end_pos)
         
-        # 3秒后自动关闭对话框
+        # 设置自动关闭定时器，使用用户自定义的消失时间
         if self.auto_close_timer:
             self.auto_close_timer.Stop()
             self.auto_close_timer.Destroy()
         
         self.auto_close_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_dialog_auto_close, self.auto_close_timer)
-        self.auto_close_timer.Start(3000, oneShot=True)
-
+        self.auto_close_timer.Start(self.work_incentive_manager.config.dialog_duration, oneShot=True)  # 使用自定义的消失时间
+    
     def on_dialog_auto_close(self, event):
         """对话框自动关闭事件处理"""
         if self.dialog and self.dialog.IsShown():
             self.dialog.hide_with_animation()
             # 不立即设置为None，让对话框动画结束后自己销毁
-
+    
     def update_dialog_position(self):
         """更新对话框位置以跟随宠物"""
         if not self.dialog or not self.dialog.IsShown():
@@ -493,8 +537,16 @@ class FinalGIFDesktopPet(wx.Frame):
             dialog_pos_x = 0
         elif dialog_pos_x + dialog_size.x > screen_size.x:
             dialog_pos_x = screen_size.x - dialog_size.x
-            
+        
         if dialog_pos_y < 0:
             dialog_pos_y = pet_pos.y + pet_size.y + 10
         
         self.dialog.SetPosition((dialog_pos_x, dialog_pos_y))
+    
+    def on_income_timer(self, event):
+        """收益提示定时器事件处理"""
+        # 当有月薪配置时才自动弹出收益提示
+        if self.work_incentive_manager.config.salary > 0:
+            self.show_cute_dialog()
+
+
