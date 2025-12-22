@@ -14,6 +14,7 @@ class WorkIncentiveConfig:
         "dialog_duration": 5000,  # 对话框显示时间（毫秒）
         "income_templates": ["你今天已经赚了 {money} 元"],  # 收益提示模板列表
         "remind_interval": 60,  # 提醒间隔（秒）
+        "show_income_bubble": True,  # 是否显示气泡提示
     }
     
     # 配置文件路径
@@ -177,6 +178,16 @@ class WorkIncentiveConfig:
             templates[0] = value
         else:
             templates = [value]
+    
+    @property
+    def show_income_bubble(self):
+        """获取是否显示气泡提示"""
+        return self.config.get("show_income_bubble", True)
+    
+    @show_income_bubble.setter
+    def show_income_bubble(self, value):
+        """设置是否显示气泡提示"""
+        self.config["show_income_bubble"] = value
     
     def calculate_earned_money(self):
         """计算今天已经赚了多少钱"""

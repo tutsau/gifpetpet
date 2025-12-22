@@ -8,5 +8,7 @@
     "！！！！{money}",
     "{money}！！！！"
   ],
-  "remind_interval": 5
+  "remind_interval": 3,
+  "show_income_bubble": true,
+  "show_bubble": true
 }

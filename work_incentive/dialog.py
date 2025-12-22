@@ -24,6 +24,12 @@ class WorkIncentiveDialog(wx.Dialog):
         # 创建主容器
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         
+        # 上班激励气泡功能开关
+        bubble_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.show_bubble_checkbox = wx.CheckBox(self, label="展示上班激励")
+        self.show_bubble_checkbox.SetValue(self.config.show_income_bubble)
+        bubble_sizer.Add(self.show_bubble_checkbox, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
         # 月薪输入
         salary_sizer = wx.BoxSizer(wx.HORIZONTAL)
         salary_label = wx.StaticText(self, label="月薪：")
@@ -106,6 +112,7 @@ class WorkIncentiveDialog(wx.Dialog):
         template_sizer.Add(self.template_ctrl, 0, wx.ALL | wx.EXPAND, 5)
 
         # 添加到主容器
+        main_sizer.Add(bubble_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(salary_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(start_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(end_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -164,6 +171,9 @@ class WorkIncentiveDialog(wx.Dialog):
             
             # 保存提醒间隔
             self.config.remind_interval = int(interval_text)
+            
+            # 保存气泡显示设置
+            self.config.show_income_bubble = self.show_bubble_checkbox.GetValue()
             
             # 保存收益提示模板列表（去除空行）
             self.config.income_templates = [template.strip() for template in self.template_ctrl.GetValue().split("\n") if template.strip()]

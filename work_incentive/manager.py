@@ -42,7 +42,7 @@ class WorkIncentiveManager:
     
     def show_income_hint(self):
         """显示收益提示"""
-        if self.config.salary <= 0:
+        if self.config.salary <= 0 or not self.config.show_income_bubble:
             return
     
         # 直接调用宠物的气泡对话框方法
