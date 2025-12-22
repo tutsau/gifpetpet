@@ -807,7 +807,9 @@ class FinalGIFDesktopPet(wx.Frame):
     def on_mouse_enter(self, event):
         """鼠标进入窗口事件"""
         # 鼠标悬停时暂停动画并跳转到第一帧
-        self.pause_animation(0)
+        # self.pause_animation(0)
+        # 鼠标悬停时暂停动画
+        self.pause_animation()
         event.Skip()
     
     def on_mouse_leave(self, event):
