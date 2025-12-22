@@ -62,6 +62,12 @@ class PetTaskBarIcon:
             menu = NSMenu.alloc().init()
             menu.setAutoenablesItems_(True)
             
+            # 创建更换形象菜单项
+            change_image_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("更换形象", "onChangeImage", "")
+            change_image_item.setTarget_(self)
+            change_image_item.setEnabled_(True)
+            menu.addItem_(change_image_item)
+            
             # 创建上班激励菜单项
             work_incentive_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("上班激励", "onWorkIncentive", "")
             work_incentive_item.setTarget_(self)
@@ -79,6 +85,7 @@ class PetTaskBarIcon:
             
             # 保存引用
             self._menu = menu
+            self._change_image_item = change_image_item
             self._work_incentive_item = work_incentive_item
             self._exit_item = exit_item
             
@@ -96,6 +103,10 @@ class PetTaskBarIcon:
             print(f"初始化macOS托盘图标失败: {e}")
             import traceback
             traceback.print_exc()
+    
+    def onChangeImage(self):
+        """更换形象菜单项的回调方法（macOS）"""
+        self.on_change_image(None)
     
     def onWorkIncentive(self):
         """上班激励菜单项的回调方法"""
@@ -166,6 +177,10 @@ class PetTaskBarIcon:
         
         menu = wx.Menu()
         
+        # 更换形象菜单项
+        change_image_item = menu.Append(wx.ID_ANY, "更换形象")
+        self.taskbar_icon.Bind(self.evt_menu, self.on_change_image, change_image_item)
+        
         # 上班激励菜单项
         work_incentive_item = menu.Append(wx.ID_ANY, "上班激励")
         self.taskbar_icon.Bind(self.evt_menu, self.on_work_incentive, work_incentive_item)
@@ -194,6 +209,14 @@ class PetTaskBarIcon:
         
         # 调用主窗口的上班激励方法
         self.frame.on_work_incentive(event)
+    
+    def on_change_image(self, event):
+        """更换形象菜单项点击事件"""
+        if not self.taskbar_supported:
+            return
+        
+        # 调用主窗口的更换形象方法
+        self.frame.on_change_image(event)
     
     def on_exit(self, event):
         """退出菜单项点击事件"""

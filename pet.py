@@ -1009,7 +1009,7 @@ class FinalGIFDesktopPet(wx.Frame):
             self.SetPosition(current_pos)
             
             # 显示成功消息
-            wx.MessageBox("宠物形象已成功更换！", "成功", wx.OK | wx.ICON_INFORMATION)
+            # wx.MessageBox("宠物形象已成功更换！", "成功", wx.OK | wx.ICON_INFORMATION)
         except Exception as e:
             print(f"更换宠物形象失败: {e}")
             wx.MessageBox(f"更换宠物形象失败: {e}", "错误", wx.OK | wx.ICON_ERROR)
