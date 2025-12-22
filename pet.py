@@ -414,11 +414,17 @@ class FinalGIFDesktopPet(wx.Frame):
             self.animation_timer.Stop()
         if self.income_timer:
             self.income_timer.Stop()
-        if self.auto_close_timer:
-            self.auto_close_timer.Stop()
-            self.auto_close_timer.Destroy()
+        # 移除对auto_close_timer的管理，因为它由WorkIncentiveManager负责管理
+        # if self.auto_close_timer:
+        #     self.auto_close_timer.Stop()
+        #     self.auto_close_timer.Destroy()
         if self.bounce_timer:
             self.bounce_timer.Stop()
+        
+        # 调用上班激励管理器的stop方法，清理其管理的资源
+        if hasattr(self, 'work_incentive_manager') and self.work_incentive_manager:
+            self.work_incentive_manager.stop()
+        
         event.Skip()
         self.Destroy()
         wx.GetApp().ExitMainLoop()
