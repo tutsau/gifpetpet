@@ -1,0 +1,12 @@
+{
+  "salary": 30000,
+  "work_start_time": "09:00",
+  "work_end_time": "18:00",
+  "custom_texts": [],
+  "dialog_duration": 5000,
+  "income_templates": [
+    "恭喜你又赚了 {money} 元！",
+    "已经工作了一段时间，赚了 {money} 元！"
+  ],
+  "remind_interval": 60
+}
