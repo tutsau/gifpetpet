@@ -45,50 +45,20 @@ class WorkIncentiveManager:
         if self.config.salary <= 0:
             return
     
-        # 计算已赚金额
-        earned_money = self.config.calculate_earned_money()
-    
-        # 构建提示文本
-        import random
-        if self.config.custom_texts:
-            # 如果有自定义提示语，随机选择一个
-            text = random.choice(self.config.custom_texts).format(money=round(earned_money, 2))
-        else:
-            # 从多个模板中随机选择一个
-            templates = self.config.income_templates
-            if templates:
-                text = random.choice(templates).format(money=round(earned_money, 2))
-            else:
-                text = f"你今天已经赚了 {round(earned_money, 2)} 元"
-    
-        # 创建提示对话框
-        dlg = wx.Dialog(self.pet, title="上班激励", size=(300, 150))
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        
-        text_label = wx.StaticText(dlg, label=text)
-        text_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        
-        main_sizer.Add(text_label, 1, wx.ALL | wx.ALIGN_CENTER, 20)
-        dlg.SetSizer(main_sizer)
-        dlg.Layout()
-        
-        # 显示对话框
-        dlg.Show()
-        
-        # 设置自动关闭定时器
-        if self.auto_close_timer:
-            self.auto_close_timer.Stop()
-            self.auto_close_timer.Destroy()
-        
-        self.auto_close_timer = wx.Timer(self.pet)
-        self.pet.Bind(wx.EVT_TIMER, lambda event: self.close_hint(dlg), self.auto_close_timer)
-        self.auto_close_timer.Start(self.config.dialog_duration, oneShot=True)
+        # 直接调用宠物的气泡对话框方法
+        self.pet.show_cute_dialog()
     
     def close_hint(self, dlg):
         """关闭提示对话框"""
-        if dlg and not dlg.IsDestroyed():
-            dlg.Destroy()
-            
+        try:
+            if dlg:
+                dlg.Destroy()
+        except Exception as e:
+            # 如果对话框已经被销毁或其他异常，忽略
+            print(f"关闭对话框时发生异常: {e}")
+            import traceback
+            traceback.print_exc()
+        
         if self.auto_close_timer:
             self.auto_close_timer.Stop()
             self.auto_close_timer.Destroy()

@@ -28,6 +28,7 @@ import wx
 import sys
 import os
 from pet import FinalGIFDesktopPet
+from taskbar import PetTaskBarIcon
 
 
 def main():
@@ -39,6 +40,10 @@ def main():
     try:
         app = wx.App(redirect=False)
         pet = FinalGIFDesktopPet()
+        
+        # 初始化托盘图标
+        taskbar_icon = PetTaskBarIcon(pet)
+        
         print("桌面宠物已启动，按 Ctrl+C 退出")
         app.MainLoop()
     except Exception as e:
