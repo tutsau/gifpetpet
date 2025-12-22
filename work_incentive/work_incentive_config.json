@@ -2,13 +2,17 @@
   "salary": 50000,
   "work_start_time": "00:00",
   "work_end_time": "23:00",
-  "custom_texts": [],
+  "custom_texts": [
+    "我是不是滑溜溜的",
+    "我是不是很可爱",
+    "喵～喵～"
+  ],
   "dialog_duration": 1000,
   "income_templates": [
     "！！！！{money}",
     "{money}！！！！"
   ],
   "remind_interval": 3,
-  "show_income_bubble": true,
+  "show_income_bubble": false,
   "show_bubble": true
 }

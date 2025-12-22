@@ -10,7 +10,10 @@ class WorkIncentiveConfig:
         "salary": 3000,  # 月薪，默认3000元
         "work_start_time": "09:00",  # 工作开始时间
         "work_end_time": "18:00",  # 工作结束时间
-        "custom_texts": [],  # 自定义提示语列表
+        "custom_texts": [
+            "我是不是滑溜溜的"
+            "我是不是很可爱",
+            "喵～喵～",],  # 自定义提示语列表
         "dialog_duration": 5000,  # 对话框显示时间（毫秒）
         "income_templates": ["你今天已经赚了 {money} 元"],  # 收益提示模板列表
         "remind_interval": 60,  # 提醒间隔（秒）

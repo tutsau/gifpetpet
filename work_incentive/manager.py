@@ -2,6 +2,7 @@ import datetime
 import wx
 from .config import WorkIncentiveConfig
 from .dialog import WorkIncentiveDialog
+from .custom_texts_dialog import CustomTextsDialog
 
 class WorkIncentiveManager:
     """上班激励功能管理器"""
@@ -37,6 +38,17 @@ class WorkIncentiveManager:
                 self.income_timer = wx.Timer(self.pet)
                 self.pet.Bind(wx.EVT_TIMER, self.on_income_timer, self.income_timer)
                 self.income_timer.Start(self.config.remind_interval * 1000)  # 转换为毫秒
+        
+        dlg.Destroy()
+    
+    def show_custom_texts_dialog(self):
+        """显示自定义提示语设置对话框"""
+        dlg = CustomTextsDialog(self.pet, self.config)
+        
+        # 显示对话框并等待用户操作
+        if dlg.ShowModal() == wx.ID_OK:
+            # 用户点击了确定按钮，保存配置
+            self.config.save()
         
         dlg.Destroy()
     

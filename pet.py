@@ -32,6 +32,10 @@ class FinalGIFDesktopPet(wx.Frame):
         work_incentive_item = menu.Append(wx.ID_ANY, "上班激励")
         self.Bind(wx.EVT_MENU, self.on_work_incentive, work_incentive_item)
         
+        # 自定义提示语选项
+        custom_texts_item = menu.Append(wx.ID_ANY, "自定义提示语")
+        self.Bind(wx.EVT_MENU, self.on_custom_texts, custom_texts_item)
+        
         # 退出选项
         exit_item = menu.Append(wx.ID_EXIT, "退出")
         self.Bind(wx.EVT_MENU, self.on_close, exit_item)
@@ -45,6 +49,11 @@ class FinalGIFDesktopPet(wx.Frame):
         """上班激励选项点击事件"""
         # 使用管理器显示配置对话框
         self.work_incentive_manager.show_config_dialog()
+    
+    def on_custom_texts(self, event):
+        """自定义提示语选项点击事件"""
+        # 使用管理器显示自定义提示语设置对话框
+        self.work_incentive_manager.show_custom_texts_dialog()
     
     def __init__(self, gif_path=config.Config.get_gif_path()):
         """初始化桌面宠物
@@ -1286,18 +1295,7 @@ class FinalGIFDesktopPet(wx.Frame):
                 all_texts.extend(self.work_incentive_manager.config.custom_texts)
             
             # 添加默认提示语
-            default_texts = [
-                "你好呀！",
-                "主人，有什么事吗？",
-                "今天天气真好！",
-                "我是不是很可爱？",
-                "需要我的帮助吗？",
-                "主人，陪我玩一会儿吧～",
-                "我会一直陪着你的！",
-                "喵～喵～",
-                "很高兴见到你！",
-                "今天也要开心哦！"
-            ]
+            default_texts = []
             all_texts.extend(default_texts)
             
             # 如果没有任何文本（理论上不会发生），使用默认文本

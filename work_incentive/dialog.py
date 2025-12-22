@@ -11,7 +11,7 @@ class WorkIncentiveDialog(wx.Dialog):
             parent: 父窗口
             config: 上班激励配置对象
         """
-        super().__init__(parent, title="上班激励设置", size=(400, 450), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        super().__init__(parent, title="上班激励设置", size=(400, 400), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         
         # 保存配置引用
         self.config = config
@@ -55,12 +55,6 @@ class WorkIncentiveDialog(wx.Dialog):
         
         end_time_sizer.Add(end_time_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         end_time_sizer.Add(self.end_time_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        
-        # 自定义提示语
-        custom_texts_label = wx.StaticText(self, label="自定义提示语（每行一条）：")
-        self.custom_texts_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER, size=(350, 150))
-        # 将自定义提示语列表转换为多行文本
-        self.custom_texts_ctrl.SetValue("\n".join(self.config.custom_texts))
         
         # 提示消失时间
         duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -117,8 +111,6 @@ class WorkIncentiveDialog(wx.Dialog):
         main_sizer.Add(start_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(end_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(template_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(custom_texts_label, 0, wx.ALL, 5)
-        main_sizer.Add(self.custom_texts_ctrl, 1, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(duration_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(interval_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -162,9 +154,6 @@ class WorkIncentiveDialog(wx.Dialog):
 
             self.config.work_start_time = start_time
             self.config.work_end_time = end_time
-            
-            # 保存自定义提示语（去除空行）
-            self.config.custom_texts = [text.strip() for text in self.custom_texts_ctrl.GetValue().split("\n") if text.strip()]
             
             # 保存消失时间（转换为毫秒）
             self.config.dialog_duration = int(duration_text) * 1000

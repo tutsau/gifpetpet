@@ -74,6 +74,12 @@ class PetTaskBarIcon:
             work_incentive_item.setEnabled_(True)
             menu.addItem_(work_incentive_item)
             
+            # 创建自定义提示语菜单项
+            custom_texts_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("自定义提示语", "onCustomTexts", "")
+            custom_texts_item.setTarget_(self)
+            custom_texts_item.setEnabled_(True)
+            menu.addItem_(custom_texts_item)
+            
             # 创建退出菜单项
             exit_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("退出", "onExit", "")
             exit_item.setTarget_(self)
@@ -87,6 +93,7 @@ class PetTaskBarIcon:
             self._menu = menu
             self._change_image_item = change_image_item
             self._work_incentive_item = work_incentive_item
+            self._custom_texts_item = custom_texts_item
             self._exit_item = exit_item
             
             self.taskbar_supported = True
@@ -111,6 +118,10 @@ class PetTaskBarIcon:
     def onWorkIncentive(self):
         """上班激励菜单项的回调方法"""
         self.on_work_incentive(None)
+    
+    def onCustomTexts(self):
+        """自定义提示语菜单项的回调方法"""
+        self.on_custom_texts(None)
     
     def onExit(self):
         """退出菜单项的回调方法"""
@@ -185,6 +196,10 @@ class PetTaskBarIcon:
         work_incentive_item = menu.Append(wx.ID_ANY, "上班激励")
         self.taskbar_icon.Bind(self.evt_menu, self.on_work_incentive, work_incentive_item)
         
+        # 自定义提示语菜单项
+        custom_texts_item = menu.Append(wx.ID_ANY, "自定义提示语")
+        self.taskbar_icon.Bind(self.evt_menu, self.on_custom_texts, custom_texts_item)
+        
         # 退出菜单项
         exit_item = menu.Append(wx.ID_EXIT, "退出")
         self.taskbar_icon.Bind(self.evt_menu, self.on_exit, exit_item)
@@ -209,6 +224,14 @@ class PetTaskBarIcon:
         
         # 调用主窗口的上班激励方法
         self.frame.on_work_incentive(event)
+    
+    def on_custom_texts(self, event):
+        """自定义提示语菜单项点击事件"""
+        if not self.taskbar_supported:
+            return
+        
+        # 调用主窗口的自定义提示语方法
+        self.frame.on_custom_texts(event)
     
     def on_change_image(self, event):
         """更换形象菜单项点击事件"""
