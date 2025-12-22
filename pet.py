@@ -435,9 +435,13 @@ class FinalGIFDesktopPet(wx.Frame):
         screen_size = wx.GetDisplaySize()
         window_size = self.GetSize()
         
-        # 计算初始位置（右下角）
-        pos_x = screen_size.GetWidth() + self.INIT_X - window_size.GetWidth()
+        # 计算初始位置（右下角，确保完全可见）
+        pos_x = screen_size.GetWidth() - self.INIT_X - window_size.GetWidth()
         pos_y = screen_size.GetHeight() - self.INIT_Y - window_size.GetHeight()
+        
+        # 确保位置在屏幕内
+        pos_x = max(0, min(pos_x, screen_size.GetWidth() - window_size.GetWidth()))
+        pos_y = max(0, min(pos_y, screen_size.GetHeight() - window_size.GetHeight()))
         
         self.SetPosition((pos_x, pos_y))
         print(f"初始位置: ({pos_x}, {pos_y})")
