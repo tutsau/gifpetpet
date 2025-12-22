@@ -41,6 +41,13 @@ class Config:
         Returns:
             str: GIF文件的绝对路径
         """
+        import sys
+        import os
+        
+        # PyInstaller打包后，资源文件会放在sys._MEIPASS目录下
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, Config.GIF_PATH)
+        # 未打包时，使用当前文件所在目录
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), Config.GIF_PATH)
     
     @staticmethod

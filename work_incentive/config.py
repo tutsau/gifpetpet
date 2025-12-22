@@ -17,7 +17,23 @@ class WorkIncentiveConfig:
     }
     
     # 配置文件路径
-    CONFIG_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "work_incentive_config.json")
+    @staticmethod
+    def get_config_path():
+        """获取配置文件的绝对路径
+        
+        Returns:
+            str: 配置文件的绝对路径
+        """
+        import sys
+        import os
+        
+        # PyInstaller打包后，资源文件会放在sys._MEIPASS目录下
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, "work_incentive", "work_incentive_config.json")
+        # 未打包时，使用当前文件所在目录
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "work_incentive_config.json")
+    
+    CONFIG_FILE_PATH = get_config_path.__func__()
     
     def __init__(self):
         """初始化配置"""
