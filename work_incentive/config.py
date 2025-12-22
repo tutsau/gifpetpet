@@ -16,21 +16,13 @@ class WorkIncentiveConfig:
         "remind_interval": 60,  # 提醒间隔（秒）
     }
     
-    @property
-    def remind_interval(self):
-        """获取收益提示提醒间隔（秒）"""
-        return self.config.get("remind_interval", 60)
-    
-    @remind_interval.setter
-    def remind_interval(self, value):
-        """设置收益提示提醒间隔（秒）"""
-        self.config["remind_interval"] = value
-    
     # 配置文件路径
     CONFIG_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "work_incentive_config.json")
     
     def __init__(self):
         """初始化配置"""
+        # 先初始化self.config为默认配置
+        self.config = self.DEFAULT_CONFIG.copy()
         self.load()
         # 确保income_templates是列表格式（向后兼容）
         if isinstance(self.config.get("income_templates"), str):
@@ -51,14 +43,14 @@ class WorkIncentiveConfig:
             if os.path.exists(self.CONFIG_FILE_PATH):
                 with open(self.CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
                     loaded_config = json.load(f)
-                    # 合并加载的配置到默认配置，确保所有必要的键都存在
+                    # 合并加载的配置到当前配置，确保所有必要的键都存在
                     self.config.update(loaded_config)
                 print("上班激励配置加载成功")
             else:
                 print("上班激励配置文件不存在，使用默认配置")
         except Exception as e:
             print(f"上班激励配置加载失败: {e}")
-            # 加载失败时使用默认配置
+            # 加载失败时重置为默认配置
             self.config = self.DEFAULT_CONFIG.copy()
     
     def save(self):
@@ -69,6 +61,16 @@ class WorkIncentiveConfig:
             print("上班激励配置保存成功")
         except Exception as e:
             print(f"上班激励配置保存失败: {e}")
+    
+    @property
+    def remind_interval(self):
+        """获取收益提示提醒间隔（秒）"""
+        return self.config.get("remind_interval", 60)
+    
+    @remind_interval.setter
+    def remind_interval(self, value):
+        """设置收益提示提醒间隔（秒）"""
+        self.config["remind_interval"] = value
     
     @property
     def salary(self):
@@ -159,46 +161,38 @@ class WorkIncentiveConfig:
             templates[0] = value
         else:
             templates = [value]
-        self.config["income_templates"] = templates
     
     def calculate_earned_money(self):
-        """计算当前已赚取的工资"""
-        if self.salary <= 0:
-            return 0
+        """计算今天已经赚了多少钱"""
+        try:
+            # 获取当前时间
+            now = datetime.datetime.now()
+            current_time = now.time()
             
-        # 获取当前时间
-        now = datetime.datetime.now()
-        today = now.date()
-    
-        # 解析上班和下班时间
-        work_start = datetime.datetime.strptime(self.work_start_time, "%H:%M").time()
-        work_end = datetime.datetime.strptime(self.work_end_time, "%H:%M").time()
-    
-        # 计算今天的上班和下班时间点
-        work_start_datetime = datetime.datetime.combine(today, work_start)
-        work_end_datetime = datetime.datetime.combine(today, work_end)
-    
-        # 如果下班时间早于上班时间，说明跨天了
-        if work_end_datetime < work_start_datetime:
-            work_end_datetime += datetime.timedelta(days=1)
-    
-        # 计算工作时长（小时）
-        work_duration_hours = (work_end_datetime - work_start_datetime).total_seconds() / 3600
-    
-        # 计算日薪
-        daily_salary = self.salary / 21.75  # 假设每月30天
-    
-        # 计算每小时工资
-        hourly_salary = daily_salary / work_duration_hours
-    
-        # 计算当前已经工作的时长
-        if now < work_start_datetime:
-            # 还没到上班时间
-            return 0
-        elif now > work_end_datetime:
-            # 已经下班了
-            return daily_salary
-        else:
-            # 正在工作中
-            worked_hours = (now - work_start_datetime).total_seconds() / 3600
+            # 解析上班和下班时间
+            work_start = datetime.datetime.strptime(self.work_start_time, "%H:%M").time()
+            work_end = datetime.datetime.strptime(self.work_end_time, "%H:%M").time()
+            
+            # 如果当前时间在上班时间之前，返回0
+            if current_time < work_start:
+                return 0
+            
+            # 如果当前时间在下班时间之后，计算全天工作时间
+            if current_time > work_end:
+                worked_hours = (datetime.datetime.combine(now.date(), work_end) - datetime.datetime.combine(now.date(), work_start)).total_seconds() / 3600
+            else:
+                # 计算从上班到现在的工作时间
+                worked_hours = (datetime.datetime.combine(now.date(), current_time) - datetime.datetime.combine(now.date(), work_start)).total_seconds() / 3600
+            
+            # 如果工作时间小于0，返回0
+            if worked_hours <= 0:
+                return 0
+            
+            # 计算每小时薪资
+            hourly_salary = self.salary / (21.75 * 8)  # 21.75是平均工作日，8是每天工作小时数
+            
+            # 返回已赚金额
             return hourly_salary * worked_hours
+        except Exception as e:
+            print(f"计算已赚金额失败: {e}")
+            return 0
