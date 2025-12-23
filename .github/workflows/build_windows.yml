@@ -30,7 +30,7 @@ jobs:
         pyinstaller --onefile --windowed --name="桌面宠物" --add-data="oiiai_cat.gif;" --add-data="work_incentive/work_incentive_config.json.example;work_incentive" -y main.py
         
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-executable
         path: dist/桌面宠物.exe
