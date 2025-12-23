@@ -11,7 +11,7 @@ class WorkIncentiveDialog(wx.Dialog):
             parent: 父窗口
             config: 上班激励配置对象
         """
-        super().__init__(parent, title="上班激励设置", size=(400, 400), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        super().__init__(parent, title="上班激励设置", size=(400, 500), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         
         # 保存配置引用
         self.config = config
@@ -21,7 +21,7 @@ class WorkIncentiveDialog(wx.Dialog):
     
     def create_ui(self):
         """创建对话框界面"""
-        # 创建主容器
+        # 创建主容器，使用垂直布局
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         
         # 上班激励气泡功能开关
@@ -29,6 +29,7 @@ class WorkIncentiveDialog(wx.Dialog):
         self.show_bubble_checkbox = wx.CheckBox(self, label="展示上班激励")
         self.show_bubble_checkbox.SetValue(self.config.show_income_bubble)
         bubble_sizer.Add(self.show_bubble_checkbox, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        main_sizer.Add(bubble_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # 月薪输入
         salary_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -39,6 +40,7 @@ class WorkIncentiveDialog(wx.Dialog):
         salary_sizer.Add(salary_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         salary_sizer.Add(self.salary_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         salary_sizer.Add(salary_unit, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        main_sizer.Add(salary_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         # 上班时间输入
         start_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -47,6 +49,7 @@ class WorkIncentiveDialog(wx.Dialog):
         
         start_time_sizer.Add(start_time_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         start_time_sizer.Add(self.start_time_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        main_sizer.Add(start_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         # 下班时间输入
         end_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -55,6 +58,7 @@ class WorkIncentiveDialog(wx.Dialog):
         
         end_time_sizer.Add(end_time_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         end_time_sizer.Add(self.end_time_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        main_sizer.Add(end_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         # 提示消失时间
         duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -65,6 +69,7 @@ class WorkIncentiveDialog(wx.Dialog):
         duration_sizer.Add(duration_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         duration_sizer.Add(self.duration_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         duration_sizer.Add(duration_unit, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        main_sizer.Add(duration_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # 提醒间隔时间
         interval_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -75,8 +80,22 @@ class WorkIncentiveDialog(wx.Dialog):
         interval_sizer.Add(interval_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         interval_sizer.Add(self.interval_ctrl, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         interval_sizer.Add(interval_unit, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        # 按钮区域
+        main_sizer.Add(interval_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # 收益提示模板
+        template_sizer = wx.BoxSizer(wx.VERTICAL)
+        template_label = wx.StaticText(self, label="收益提示模板（每行一条，支持{money}占位符）：")
+        
+        # 使用灵活的大小设置，让文本框能够根据窗口大小调整
+        self.template_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER)
+        # 将模板列表转换为多行文本
+        self.template_ctrl.SetValue("\n".join(self.config.income_templates))
+        
+        template_sizer.Add(template_label, 0, wx.ALL | wx.ALIGN_LEFT, 5)
+        template_sizer.Add(self.template_ctrl, 1, wx.ALL | wx.EXPAND, 5)
+        main_sizer.Add(template_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        
+        # 按钮区域，始终位于窗口底部
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         ok_button = wx.Button(self, wx.ID_OK, "确定")
         cancel_button = wx.Button(self, wx.ID_CANCEL, "取消")
@@ -84,6 +103,7 @@ class WorkIncentiveDialog(wx.Dialog):
         button_sizer.AddStretchSpacer()
         button_sizer.Add(ok_button, 0, wx.ALL, 5)
         button_sizer.Add(cancel_button, 0, wx.ALL, 5)
+        main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # 绑定事件
         self.Bind(wx.EVT_BUTTON, self.on_ok, ok_button)
@@ -93,29 +113,12 @@ class WorkIncentiveDialog(wx.Dialog):
         self.Bind(wx.EVT_TEXT, self.on_duration_text, self.duration_ctrl)
         self.Bind(wx.EVT_TEXT, self.on_interval_text, self.interval_ctrl)
         
-        # 收益提示模板
-        template_sizer = wx.BoxSizer(wx.VERTICAL)
-        # 收益提示模板
-        template_label = wx.StaticText(self, label="收益提示模板（每行一条，支持{money}占位符）：")
-
-        self.template_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER, size=(350, 100))
-        # 将模板列表转换为多行文本
-        self.template_ctrl.SetValue("\n".join(self.config.income_templates))
-        
-        template_sizer.Add(template_label, 0, wx.ALL | wx.ALIGN_LEFT, 5)
-        template_sizer.Add(self.template_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-
-        # 添加到主容器
-        main_sizer.Add(bubble_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(salary_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(start_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(end_time_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(template_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(duration_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(interval_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
         # 设置主容器
         self.SetSizer(main_sizer)
+        # 设置最小尺寸，确保所有控件都能显示
+        self.SetMinSize((400, 550))
+        # 设置初始尺寸
+        self.SetSize((450, 600))
         self.Layout()
 
     def on_interval_text(self, event):

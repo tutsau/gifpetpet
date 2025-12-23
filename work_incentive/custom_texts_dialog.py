@@ -20,16 +20,20 @@ class CustomTextsDialog(wx.Dialog):
     
     def create_ui(self):
         """创建对话框界面"""
-        # 创建主容器
+        # 创建主容器，使用垂直布局
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         
         # 自定义提示语
         custom_texts_label = wx.StaticText(self, label="自定义提示语（每行一条）：")
-        self.custom_texts_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER, size=(350, 300))
+        main_sizer.Add(custom_texts_label, 0, wx.ALL | wx.ALIGN_LEFT, 5)
+        
+        # 使用灵活的大小设置，让文本框能够根据窗口大小调整
+        self.custom_texts_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER)
         # 将自定义提示语列表转换为多行文本
         self.custom_texts_ctrl.SetValue("\n".join(self.config.custom_texts))
+        main_sizer.Add(self.custom_texts_ctrl, 1, wx.EXPAND | wx.ALL, 5)
         
-        # 按钮区域
+        # 按钮区域，始终位于窗口底部
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         ok_button = wx.Button(self, wx.ID_OK, "确定")
         cancel_button = wx.Button(self, wx.ID_CANCEL, "取消")
@@ -37,16 +41,15 @@ class CustomTextsDialog(wx.Dialog):
         button_sizer.AddStretchSpacer()
         button_sizer.Add(ok_button, 0, wx.ALL, 5)
         button_sizer.Add(cancel_button, 0, wx.ALL, 5)
+        main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # 绑定事件
         self.Bind(wx.EVT_BUTTON, self.on_ok, ok_button)
         
-        # 添加到主容器
-        main_sizer.Add(custom_texts_label, 0, wx.ALL, 5)
-        main_sizer.Add(self.custom_texts_ctrl, 1, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 5)
         # 设置主容器
         self.SetSizer(main_sizer)
+        # 设置最小尺寸，确保所有控件都能显示
+        self.SetMinSize((400, 450))
         self.Layout()
 
     def on_ok(self, event):
