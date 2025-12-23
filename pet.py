@@ -40,8 +40,10 @@ class FinalGIFDesktopPet(wx.Frame):
         exit_item = menu.Append(wx.ID_EXIT, "退出")
         self.Bind(wx.EVT_MENU, self.on_close, exit_item)
         
-        # 显示菜单
-        self.PopupMenu(menu)
+        # 显示菜单 - 在Windows上使用鼠标位置确保正确显示
+        mouse_pos = event.GetPosition()
+        self.PopupMenu(menu, mouse_pos)
+        
         menu.Destroy()
         event.Skip()
     
@@ -746,8 +748,28 @@ class FinalGIFDesktopPet(wx.Frame):
         try:
             # 根据不同系统设置透明
             if sys.platform == "win32":
-                # Windows：设置透明
-                self.SetTransparent(255)
+                # Windows：设置透明样式和透明色
+                # 设置窗口背景为透明色
+                self.SetBackgroundStyle(wx.BG_STYLE_TRANSPARENT)
+                # 创建一个透明的画笔和画刷
+                self.SetBackgroundColour(wx.Colour(0, 0, 0, 0))
+                # 尝试设置窗口为分层窗口（Windows特有的透明实现）
+                try:
+                    # 使用Windows API设置分层窗口
+                    import win32gui
+                    import win32con
+                    import win32api
+                    hwnd = self.GetHandle()
+                    # 设置窗口为分层窗口
+                    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, 
+                                          win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
+                    # 设置窗口透明度为255（完全不透明，但支持透明通道）
+                    win32gui.SetLayeredWindowAttributes(hwnd, 0, 255, win32con.LWA_ALPHA | win32con.LWA_COLORKEY)
+                    print("Windows分层窗口设置成功")
+                except Exception as e:
+                    print(f"Windows API设置失败，使用wxPython默认透明方式: {e}")
+                    # 如果Windows API不可用，使用wxPython的透明设置
+                    self.SetTransparent(255)
             elif sys.platform == "darwin":
                 # macOS：设置透明样式
                 self.SetWindowStyle(self.GetWindowStyle() | wx.FRAME_TOOL_WINDOW)
@@ -755,6 +777,7 @@ class FinalGIFDesktopPet(wx.Frame):
             else:
                 # Linux：设置透明
                 self.SetTransparent(255)
+                self.SetBackgroundStyle(wx.BG_STYLE_TRANSPARENT)
             
             print("窗口透明设置完成")
         except Exception as e:
