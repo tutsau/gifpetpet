@@ -32,8 +32,9 @@
 ## 技术栈
 
 - **主框架**：wxPython 4.2.1+
+- **图像处理**：Pillow 10.0.0+（用于图像处理和托盘图标生成）
 - **语言**：Python 3.8+
-- **依赖**：仅 Python 标准库 + wxPython 核心模块
+- **依赖**：Python 标准库 + wxPython + Pillow
 
 ## 快速开始
 
@@ -41,7 +42,7 @@
 
 #### Windows
 ```bash
-pip install wxPython
+pip install wxPython Pillow
 ```
 
 #### macOS
@@ -50,7 +51,7 @@ pip install wxPython
 brew install wxpython
 
 # 或者使用 pip 安装
-pip install wxPython
+pip install wxPython Pillow
 ```
 
 ### 2. 准备 GIF 素材

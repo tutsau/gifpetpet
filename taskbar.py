@@ -151,11 +151,31 @@ class PetTaskBarIcon:
                 # 创建托盘图标
                 icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pet.gif")
                 if os.path.exists(icon_path):
-                    # 从GIF文件创建图标
-                    img = wx.Image(icon_path, wx.BITMAP_TYPE_GIF)
-                    # 调整大小适合托盘
-                    img.Rescale(16, 16, wx.IMAGE_QUALITY_HIGH)
-                    icon = wx.Icon(img.ConvertToBitmap())
+                    try:
+                        # 使用PIL从GIF文件创建静态图标（取第一帧）
+                        from PIL import Image
+                        img = Image.open(icon_path)
+                        # 转换为RGB模式
+                        img = img.convert('RGB')
+                        # 调整大小适合托盘
+                        img = img.resize((16, 16), Image.Resampling.LANCZOS)
+                        # 转换为wx.Image
+                        wx_img = wx.Image(img.width, img.height)
+                        wx_img.SetData(img.tobytes())
+                        # 转换为图标
+                        icon = wx.Icon(wx_img.ConvertToBitmap())
+                    except Exception as e:
+                        print(f"使用PIL创建托盘图标失败: {e}")
+                        # 回退到wxPython的GIF加载
+                        try:
+                            img = wx.Image(icon_path, wx.BITMAP_TYPE_GIF)
+                            # 调整大小适合托盘
+                            img.Rescale(16, 16, wx.IMAGE_QUALITY_HIGH)
+                            icon = wx.Icon(img.ConvertToBitmap())
+                        except Exception as ex:
+                            print(f"使用wxPython加载GIF失败: {ex}")
+                            # 使用默认图标
+                            icon = wx.Icon(wx.Icon.GetDefaultSize())
                 else:
                     # 使用默认图标
                     icon = wx.Icon(wx.Icon.GetDefaultSize())
