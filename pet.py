@@ -63,8 +63,8 @@ class FinalGIFDesktopPet(wx.Frame):
         Args:
             gif_path: GIF动画文件路径
         """
-        # 设置窗口样式：无边框、无任务栏图标、置顶
-        style = wx.FRAME_NO_TASKBAR | wx.STAY_ON_TOP | wx.NO_BORDER
+        # 设置窗口样式：无边框、无任务栏图标、置顶，尽可能使用分形/遮罩窗口支持
+        style = wx.FRAME_NO_TASKBAR | wx.STAY_ON_TOP | wx.NO_BORDER | getattr(wx, 'FRAME_SHAPED', 0)
         super().__init__(parent=None, id=wx.ID_ANY, title='Cute Pet', pos=wx.DefaultPosition, size=(100, 100), style=style)
         
         # 配置属性
@@ -264,13 +264,14 @@ class FinalGIFDesktopPet(wx.Frame):
                 self.gif_frames.append(wx_bitmap)
                 self.frame_delays.append(delay)
             
-            # 设置初始帧
-            self.image_ctrl.SetBitmap(self.gif_frames[0])
-            
+            # 设置初始帧（使用自绘）
+            self.current_frame = 0
+
             # 调整窗口大小
             size = self.gif_frames[0].GetSize()
             self.SetSize(size)
             self.image_ctrl.SetSize(size)
+            self.Refresh()
             
             # 启动动画
             self.start_animation()
@@ -309,7 +310,7 @@ class FinalGIFDesktopPet(wx.Frame):
             # 如果指定了帧索引，跳转到该帧
             if frame_index is not None and 0 <= frame_index < len(self.gif_frames):
                 self.current_frame = frame_index
-                self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+                self.Refresh()
                 print(f"动画已暂停在第 {frame_index+1} 帧")
             else:
                 print("动画已暂停")
@@ -329,8 +330,8 @@ class FinalGIFDesktopPet(wx.Frame):
         # 切换到下一帧
         self.current_frame = (self.current_frame + 1) % len(self.gif_frames)
         
-        # 更新图像
-        self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+        # 更新图像（使用自绘）
+        self.Refresh()
         
         # 重新设置定时器间隔
         if self.animation_timer and self.animation_timer.IsRunning():
@@ -338,21 +339,58 @@ class FinalGIFDesktopPet(wx.Frame):
         self.animation_timer.Start(self.frame_delays[self.current_frame])
     
     def setup_transparent_window(self):
-        """设置窗口透明"""
+        """设置窗口透明并改为自定义绘制，避免默认擦除造成灰色背景
+
+        - 使用 `EVT_ERASE_BACKGROUND` 忽略默认背景擦除
+        - 在 `EVT_PAINT` 中绘制带 alpha 的位图
+        - 尝试根据第一帧设置窗口形状（非必需，平台差异较大）
+        """
         try:
-            # 根据不同系统设置透明
-            if sys.platform == "win32":
-                # Windows：设置透明
-                self.SetTransparent(255)
-            elif sys.platform == "darwin":
-                # macOS：设置透明样式
-                self.SetWindowStyle(self.GetWindowStyle() | wx.FRAME_TOOL_WINDOW)
-                self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-            else:
-                # Linux：设置透明
-                self.SetTransparent(255)
-            
-            print("窗口透明设置完成")
+            # 使用透明绘制风格，避免框架自动擦除背景
+            self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+
+            # 阻止默认擦除背景（可避免灰色填充）
+            self.Bind(wx.EVT_ERASE_BACKGROUND, lambda e: None)
+
+            # 如果我们使用子控件显示图像，请隐藏它并由窗口自身绘制
+            try:
+                if hasattr(self, 'image_ctrl') and self.image_ctrl:
+                    self.image_ctrl.Hide()
+                    self.image_ctrl.SetBackgroundStyle(wx.BG_STYLE_TRANSPARENT)
+            except Exception:
+                pass
+
+            # 绑定绘制事件，在帧更新时绘制当前位图
+            def _on_paint(evt):
+                dc = wx.BufferedPaintDC(self)
+                dc.Clear()
+                try:
+                    if getattr(self, 'gif_frames', None):
+                        bmp = self.gif_frames[self.current_frame]
+                        dc.DrawBitmap(bmp, 0, 0, True)
+                except Exception:
+                    pass
+
+            self.Bind(wx.EVT_PAINT, _on_paint)
+
+            # 尝试基于第一帧设置窗口形状（shaped window），非强制
+            try:
+                if getattr(self, 'gif_frames', None):
+                    bmp = self.gif_frames[0]
+                    reg = wx.Region(bmp)
+                    self.SetShape(reg)
+            except Exception:
+                pass
+
+            # 平台特定的补充：在 Windows 上保持分层窗口支持（保留 SetTransparent 调用）
+            try:
+                if sys.platform == 'win32':
+                    # 尝试确保透明度支持（不改变最终 alpha）
+                    self.SetTransparent(self.TRANSPARENT_ALPHA)
+            except Exception:
+                pass
+
+            print("窗口透明设置并使用自定义绘制完成")
         except Exception as e:
             print(f"窗口透明设置失败: {e}")
     
@@ -400,11 +438,12 @@ class FinalGIFDesktopPet(wx.Frame):
     def on_mouse_motion(self, event):
         """鼠标移动事件（处理拖拽）"""
         if self.is_dragging and self.HasCapture():
-            pos = event.GetPosition()
-            delta = (pos[0] - self.drag_pos[0], pos[1] - self.drag_pos[1])
-            new_pos = self.ClientToScreen(delta)
-            self.Move(new_pos)
-            
+            # 计算屏幕坐标下的新窗口左上角位置：鼠标屏幕位置 - 鼠标在窗口内的偏移
+            screen_pos = self.ClientToScreen(event.GetPosition())
+            new_x = screen_pos.x - self.drag_pos.x
+            new_y = screen_pos.y - self.drag_pos.y
+            self.Move(new_x, new_y)
+
             # 更新对话框位置跟随宠物移动
             self.update_dialog_position()
         event.Skip()
@@ -670,14 +709,14 @@ class FinalGIFDesktopPet(wx.Frame):
                 self.gif_frames.append(wx_bitmap)
                 self.frame_delays.append(delay)
             
-            # 设置初始帧
-            self.image_ctrl.SetBitmap(self.gif_frames[0])
-            
+            # 设置初始帧（使用自绘）
+            self.current_frame = 0
+
             # 调整窗口大小
             size = self.gif_frames[0].GetSize()
             self.SetSize(size)
             self.image_ctrl.SetSize(size)
-            
+
             # 启动动画
             self.start_animation()
             
@@ -715,7 +754,7 @@ class FinalGIFDesktopPet(wx.Frame):
             # 如果指定了帧索引，跳转到该帧
             if frame_index is not None and 0 <= frame_index < len(self.gif_frames):
                 self.current_frame = frame_index
-                self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+                self.Refresh()
                 print(f"动画已暂停在第 {frame_index+1} 帧")
             else:
                 print("动画已暂停")
@@ -735,8 +774,8 @@ class FinalGIFDesktopPet(wx.Frame):
         # 切换到下一帧
         self.current_frame = (self.current_frame + 1) % len(self.gif_frames)
         
-        # 更新图像
-        self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+        # 更新图像（使用自绘）
+        self.Refresh()
         
         # 重新设置定时器间隔
         if self.animation_timer and self.animation_timer.IsRunning():
@@ -744,42 +783,58 @@ class FinalGIFDesktopPet(wx.Frame):
         self.animation_timer.Start(self.frame_delays[self.current_frame])
     
     def setup_transparent_window(self):
-        """设置窗口透明"""
+        """设置窗口透明并改为自定义绘制，避免默认擦除造成灰色背景
+
+- 使用 `EVT_ERASE_BACKGROUND` 忽略默认背景擦除
+- 在 `EVT_PAINT` 中绘制带 alpha 的位图
+- 尝试根据第一帧设置窗口形状（非必需，平台差异较大）
+        """
         try:
-            # 根据不同系统设置透明
-            if sys.platform == "win32":
-                # Windows：设置透明样式和透明色
-                # 设置窗口背景为透明色
-                self.SetBackgroundStyle(wx.BG_STYLE_TRANSPARENT)
-                # 创建一个透明的画笔和画刷
-                self.SetBackgroundColour(wx.Colour(0, 0, 0, 0))
-                # 尝试设置窗口为分层窗口（Windows特有的透明实现）
+            # 使用透明绘制风格，避免框架自动擦除背景
+            self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+
+            # 阻止默认擦除背景（可避免灰色填充）
+            self.Bind(wx.EVT_ERASE_BACKGROUND, lambda e: None)
+
+            # 如果我们使用子控件显示图像，请隐藏它并由窗口自身绘制
+            try:
+                if hasattr(self, 'image_ctrl') and self.image_ctrl:
+                    self.image_ctrl.Hide()
+                    self.image_ctrl.SetBackgroundStyle(wx.BG_STYLE_TRANSPARENT)
+            except Exception:
+                pass
+
+            # 绑定绘制事件，在帧更新时绘制当前位图
+            def _on_paint(evt):
+                dc = wx.BufferedPaintDC(self)
+                dc.Clear()
                 try:
-                    # 使用Windows API设置分层窗口
-                    import win32gui
-                    import win32con
-                    import win32api
-                    hwnd = self.GetHandle()
-                    # 设置窗口为分层窗口
-                    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, 
-                                          win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
-                    # 设置窗口透明度为255（完全不透明，但支持透明通道）
-                    win32gui.SetLayeredWindowAttributes(hwnd, 0, 255, win32con.LWA_ALPHA | win32con.LWA_COLORKEY)
-                    print("Windows分层窗口设置成功")
-                except Exception as e:
-                    print(f"Windows API设置失败，使用wxPython默认透明方式: {e}")
-                    # 如果Windows API不可用，使用wxPython的透明设置
-                    self.SetTransparent(255)
-            elif sys.platform == "darwin":
-                # macOS：设置透明样式
-                self.SetWindowStyle(self.GetWindowStyle() | wx.FRAME_TOOL_WINDOW)
-                self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-            else:
-                # Linux：设置透明
-                self.SetTransparent(255)
-                self.SetBackgroundStyle(wx.BG_STYLE_TRANSPARENT)
-            
-            print("窗口透明设置完成")
+                    if getattr(self, 'gif_frames', None):
+                        bmp = self.gif_frames[self.current_frame]
+                        dc.DrawBitmap(bmp, 0, 0, True)
+                except Exception:
+                    pass
+
+            self.Bind(wx.EVT_PAINT, _on_paint)
+
+            # 尝试基于第一帧设置窗口形状（shaped window），非强制
+            try:
+                if getattr(self, 'gif_frames', None):
+                    bmp = self.gif_frames[0]
+                    reg = wx.Region(bmp)
+                    self.SetShape(reg)
+            except Exception:
+                pass
+
+            # 平台特定的补充：在 Windows 上保持分层窗口支持（保留 SetTransparent 调用）
+            try:
+                if sys.platform == 'win32':
+                    # 尝试确保透明度支持（不改变最终 alpha）
+                    self.SetTransparent(self.TRANSPARENT_ALPHA)
+            except Exception:
+                pass
+
+            print("窗口透明设置并使用自定义绘制完成")
         except Exception as e:
             print(f"窗口透明设置失败: {e}")
     
@@ -827,11 +882,12 @@ class FinalGIFDesktopPet(wx.Frame):
     def on_mouse_motion(self, event):
         """鼠标移动事件（处理拖拽）"""
         if self.is_dragging and self.HasCapture():
-            pos = event.GetPosition()
-            delta = (pos[0] - self.drag_pos[0], pos[1] - self.drag_pos[1])
-            new_pos = self.ClientToScreen(delta)
-            self.Move(new_pos)
-            
+            # 计算屏幕坐标下的新窗口左上角位置：鼠标屏幕位置 - 鼠标在窗口内的偏移
+            screen_pos = self.ClientToScreen(event.GetPosition())
+            new_x = screen_pos.x - self.drag_pos.x
+            new_y = screen_pos.y - self.drag_pos.y
+            self.Move(new_x, new_y)
+
             # 更新对话框位置跟随宠物移动
             self.update_dialog_position()
         event.Skip()
@@ -1097,14 +1153,14 @@ class FinalGIFDesktopPet(wx.Frame):
                 self.gif_frames.append(wx_bitmap)
                 self.frame_delays.append(delay)
             
-            # 设置初始帧
-            self.image_ctrl.SetBitmap(self.gif_frames[0])
-            
+            # 设置初始帧（使用自绘）
+            self.current_frame = 0
+
             # 调整窗口大小
             size = self.gif_frames[0].GetSize()
             self.SetSize(size)
             self.image_ctrl.SetSize(size)
-            
+
             # 启动动画
             self.start_animation()
             
@@ -1142,7 +1198,7 @@ class FinalGIFDesktopPet(wx.Frame):
             # 如果指定了帧索引，跳转到该帧
             if frame_index is not None and 0 <= frame_index < len(self.gif_frames):
                 self.current_frame = frame_index
-                self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+                self.Refresh()
                 print(f"动画已暂停在第 {frame_index+1} 帧")
             else:
                 print("动画已暂停")
@@ -1162,32 +1218,14 @@ class FinalGIFDesktopPet(wx.Frame):
         # 切换到下一帧
         self.current_frame = (self.current_frame + 1) % len(self.gif_frames)
         
-        # 更新图像
-        self.image_ctrl.SetBitmap(self.gif_frames[self.current_frame])
+        # 更新图像（使用自绘）
+        self.Refresh()
         
         # 重新设置定时器间隔
         if self.animation_timer and self.animation_timer.IsRunning():
             self.animation_timer.Stop()
         self.animation_timer.Start(self.frame_delays[self.current_frame])
     
-    def setup_transparent_window(self):
-        """设置窗口透明"""
-        try:
-            # 根据不同系统设置透明
-            if sys.platform == "win32":
-                # Windows：设置透明
-                self.SetTransparent(255)
-            elif sys.platform == "darwin":
-                # macOS：设置透明样式
-                self.SetWindowStyle(self.GetWindowStyle() | wx.FRAME_TOOL_WINDOW)
-                self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-            else:
-                # Linux：设置透明
-                self.SetTransparent(255)
-            
-            print("窗口透明设置完成")
-        except Exception as e:
-            print(f"窗口透明设置失败: {e}")
     
     def bind_events(self):
         """绑定事件"""
